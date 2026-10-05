@@ -179,9 +179,13 @@ details.trip[open]>summary .trip-head::after{transform:rotate(225deg);top:32px}
 <div id="auth" hidden><div class="box">
   <div class="eyebrow">Family travel log</div>
   <h1>Sign in</h1>
-  <p class="hint" id="auth-msg">Enter your email. We will send you a sign-in link.</p>
+  <p class="hint" id="auth-msg">Enter your email. We will send you a 6-digit sign-in code.</p>
   <input type="text" id="auth-email" inputmode="email" autocomplete="email" placeholder="you@example.com">
-  <button class="btn primary" type="button" id="auth-go">Email me a link</button>
+  <button class="btn primary" type="button" id="auth-go">Email me a code</button>
+  <div id="auth-code-box" hidden style="display:flex;flex-direction:column;gap:12px">
+    <input type="text" id="auth-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="6-digit code from the email" style="font-size:1.4rem;letter-spacing:.2em;text-align:center">
+    <button class="btn primary" type="button" id="auth-verify">Sign in</button>
+  </div>
 </div></div>
 <div class="wrap">
   <header>
@@ -720,13 +724,26 @@ details.trip[open]>summary .trip-head::after{transform:rotate(225deg);top:32px}
   if(!window.supabase||!window.APP_CONFIG||!APP_CONFIG.supabaseUrl){
     $('list').innerHTML='<div class="empty"><h3>Not configured yet</h3><p>Set the Supabase URL and key in config.js.</p></div>';return;
   }
-  sb=window.supabase.createClient(APP_CONFIG.supabaseUrl,APP_CONFIG.supabaseAnonKey);
+  sb=window.supabase.createClient(APP_CONFIG.supabaseUrl,APP_CONFIG.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  var authEmail='';
   $('auth-go').addEventListener('click',function(){
     var em=$('auth-email').value.trim().toLowerCase();if(!em)return;
     $('auth-go').disabled=true;
     sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin}}).then(function(r){
       $('auth-go').disabled=false;
-      $('auth-msg').textContent=r.error?'Could not send the link. Check the email and try again.':'Check your email and open the link on this device.';
+      if(r.error){$('auth-msg').textContent='Could not send the code. Check the email and try again.';return;}
+      authEmail=em;$('auth-code-box').hidden=false;$('auth-go').textContent='Send a new code';
+      $('auth-msg').textContent='Check your email, then type the code here. You can stay in this app.';
+      $('auth-code').focus();
+    });
+  });
+  $('auth-verify').addEventListener('click',function(){
+    var code=$('auth-code').value.replace(/\s+/g,'');if(!code||!authEmail)return;
+    $('auth-verify').disabled=true;
+    sb.auth.verifyOtp({email:authEmail,token:code,type:'email'}).then(function(r){
+      $('auth-verify').disabled=false;
+      if(r.error){$('auth-msg').textContent='That code did not work. Check it or request a new one.';return;}
+      if(r.data&&r.data.session&&!db)start(r.data.session);
     });
   });
   $('btn-out').addEventListener('click',function(){sb.auth.signOut().then(function(){location.reload();});});
