@@ -1,0 +1,653 @@
+<title>Kohli Family Travel Log</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e6b73">
+<link rel="manifest" href="/manifest.webmanifest">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: a travel ledger. Trips are stacked sections; inside each, dated rows read like a timetable (time column, type tag, detail, actions). */
+:root{
+  --bg:#edf0f2; --surface:#f8fafb; --ink:#15222b; --muted:#5b6b76; --line:#d3dae0;
+  --accent:#0e6b73; --accent-ink:#ffffff; --danger:#a63a3a;
+  --flight:#2b5da8; --hotel:#7a4b8f; --food:#a85d16; --move:#2f7d5b; --fun:#9a4a5c; --sug:#8a7a1f;
+  --font-display:'Newsreader',Georgia,'Times New Roman',serif;
+  --font-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10181d; --surface:#172229; --ink:#e6edf1; --muted:#93a3ae; --line:#26343c;
+    --accent:#4fc3cb; --accent-ink:#0b1a1d; --danger:#e58a8a;
+    --flight:#7fa8e8; --hotel:#c39ad6; --food:#e3a361; --move:#74c79f; --fun:#e39aab; --sug:#d6c565;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10181d; --surface:#172229; --ink:#e6edf1; --muted:#93a3ae; --line:#26343c;
+  --accent:#4fc3cb; --accent-ink:#0b1a1d; --danger:#e58a8a;
+  --flight:#7fa8e8; --hotel:#c39ad6; --food:#e3a361; --move:#74c79f; --fun:#e39aab; --sug:#d6c565;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 56px}
+.wrap{max-width:880px;margin-inline:auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0;text-wrap:balance}
+h1{font-size:2rem;line-height:1.1;letter-spacing:-.01em}
+h2{font-size:1.45rem;line-height:1.2}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--font-mono);font-size:.86em}
+.muted{color:var(--muted)}
+header{display:flex;flex-direction:column;gap:14px}
+.head-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.eyebrow{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.next{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.next b{font-family:var(--font-display);font-size:1.1rem;font-weight:600}
+.next .days{margin-left:auto;font-family:var(--font-mono);font-size:.85rem;color:var(--accent)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:7px 12px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;font-size:.84rem;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c,var(--muted));display:inline-block}
+.chip[aria-pressed="true"]{color:var(--ink);border-color:var(--ink)}
+input[type=search],input[type=text],input[type=date],input[type=time],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:8px 10px;min-width:0}
+input[type=search]{max-width:240px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:7px 13px;font-weight:500}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted);padding:4px 8px;font-size:.85rem}
+.btn.ghost:hover{color:var(--ink);border-color:var(--line)}
+.btn.danger[data-armed="1"]{color:var(--danger);border-color:var(--danger)}
+.spacer{flex:1}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.grid .wide{grid-column:1/-1}
+label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+label input,label select,label textarea{text-transform:none;letter-spacing:0;font-weight:400;font-size:.95rem;color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+.sub{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;font-weight:600}
+.trip{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.trip-head{padding:16px 16px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--line)}
+.trip-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.88rem;color:var(--muted)}
+.badge{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border-radius:3px;padding:2px 7px;background:var(--accent);color:var(--accent-ink);align-self:flex-start}
+.badge.past{background:var(--line);color:var(--muted)}
+.trip-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.day{display:grid;grid-template-columns:5.2rem minmax(0,1fr);gap:0 12px;padding:12px 16px;border-top:1px solid var(--line)}
+.day:first-of-type{border-top:0}
+.day-label{font-family:var(--font-mono);font-size:.8rem;color:var(--muted);padding-top:2px;line-height:1.35}
+.day-label b{display:block;color:var(--ink);font-weight:500;font-size:.95rem}
+.items{display:flex;flex-direction:column;gap:12px;min-width:0}
+.item{display:grid;grid-template-columns:4.4rem minmax(0,1fr) auto;gap:2px 10px;align-items:start}
+.time{font-family:var(--font-mono);font-size:.82rem;color:var(--muted);padding-top:2px}
+.item-main{min-width:0}
+.tag{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--c);margin-right:6px}
+.item-title{font-weight:500;overflow-wrap:anywhere}
+.item-sub{font-size:.86rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:1px;overflow-wrap:anywhere}
+.code{font-family:var(--font-mono);font-size:.82rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:0 5px;cursor:pointer}
+.item-actions{display:flex;gap:0;opacity:.75}
+.item:hover .item-actions,.item:focus-within .item-actions{opacity:1}
+.empty{text-align:center;padding:36px 16px;color:var(--muted);border:1px dashed var(--line);border-radius:8px}
+.empty h3{color:var(--ink);margin-bottom:6px}
+.noitems{padding:14px 16px;color:var(--muted);font-size:.9rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:.88rem;max-width:calc(100% - 32px)}
+.legacy{font-size:.85rem;color:var(--muted)}
+@media (max-width:560px){
+  h1{font-size:1.65rem}
+  .day{grid-template-columns:1fr;gap:6px}
+  .day-label{display:flex;gap:8px;align-items:baseline}
+  .day-label b{display:inline}
+  .item{grid-template-columns:3.8rem minmax(0,1fr)}
+  .item-actions{grid-column:2;margin-left:-8px}
+  input[type=search]{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+#auth{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+#auth[hidden]{display:none}
+#auth .box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:12px}
+</style>
+
+<div id="auth" hidden><div class="box">
+  <div class="eyebrow">Family travel log</div>
+  <h1>Sign in</h1>
+  <p class="hint" id="auth-msg">Enter your email. We will send you a sign-in link.</p>
+  <input type="text" id="auth-email" inputmode="email" autocomplete="email" placeholder="you@example.com">
+  <button class="btn primary" type="button" id="auth-go">Email me a link</button>
+</div></div>
+<div class="wrap">
+  <header>
+    <div class="head-top">
+      <div>
+        <div class="eyebrow">Family travel log</div>
+        <h1>Kohli family trips</h1>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-import" type="button">Import</button>
+        <button class="btn ghost" id="btn-out" type="button">Sign out</button>
+        <button class="btn" id="btn-trip" type="button">New trip</button>
+        <button class="btn primary" id="btn-item" type="button">Add booking</button>
+      </div>
+    </div>
+    <div id="next" class="next" hidden></div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Show trips">
+        <button type="button" data-when="upcoming" aria-pressed="true">Upcoming</button>
+        <button type="button" data-when="past" aria-pressed="false">Past</button>
+        <button type="button" data-when="all" aria-pressed="false">All</button>
+      </div>
+      <input type="search" id="q" placeholder="Search city, hotel, code" aria-label="Search bookings">
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filter by type"></div>
+  </header>
+
+  <section id="form-item" class="panel" hidden aria-label="Booking form">
+    <h2 id="item-form-title">Add booking</h2>
+    <form id="f-item" autocomplete="off">
+      <input type="hidden" id="i-id">
+      <div class="grid">
+        <label>Type<select id="i-type"></select></label>
+        <label>Trip<select id="i-trip"></select></label>
+        <label class="wide">Title<input type="text" id="i-title" required placeholder="UA1732 BOS to ORD, Hotel name, Restaurant name"></label>
+        <label>Date<input type="date" id="i-date" required></label>
+        <label>Time<input type="time" id="i-time"></label>
+        <label>End date<input type="date" id="i-edate"></label>
+        <label>End time<input type="time" id="i-etime"></label>
+        <label class="wide">Place or address<input type="text" id="i-loc"></label>
+        <label>Confirmation<input type="text" id="i-conf"></label>
+        <label>Travelers<input type="text" id="i-who" placeholder="Puneet, Priyanka, Rhea"></label>
+        <label class="wide">Notes<textarea id="i-notes"></textarea></label>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" type="submit">Save booking</button>
+        <button class="btn" type="button" data-close="form-item">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="form-trip" class="panel" hidden aria-label="Trip form">
+    <h2 id="trip-form-title">New trip</h2>
+    <form id="f-trip" autocomplete="off">
+      <input type="hidden" id="t-id">
+      <div class="grid">
+        <label class="wide">Trip name<input type="text" id="t-name" required placeholder="London, Thanksgiving in Miami"></label>
+        <label>Destination<input type="text" id="t-dest"></label>
+        <label>Travelers<input type="text" id="t-who" placeholder="Puneet, Priyanka, Rhea"></label>
+        <label>Starts<input type="date" id="t-start"></label>
+        <label>Ends<input type="date" id="t-end"></label>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" type="submit">Save trip</button>
+        <button class="btn" type="button" data-close="form-trip">Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="form-import" class="panel" hidden aria-label="Import from TripIt">
+    <h2>Import from TripIt</h2>
+    <h3 class="sub">Calendar feed (automatic)</h3>
+    <p class="hint">In TripIt, open Settings, then Calendar Feed, copy the feed link and paste it here. Bookings are grouped into trips by date and anything already logged is skipped. The link is saved with the log so the daily refresh can keep it current.</p>
+    <div class="grid">
+      <label class="wide">TripIt feed link<input type="url" id="m-feed" placeholder="https://www.tripit.com/feed/ical/private/…/tripit.ics" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <div class="row"><button class="btn primary" type="button" id="m-sync">Save and sync</button><span class="hint" id="m-status" role="status"></span></div>
+    <h3 class="sub">Or import a file</h3>
+    <p class="hint">Download the .ics file from TripIt and choose it here. Items already in the trip are skipped.</p>
+    <div class="grid">
+      <label>Add to trip<select id="m-trip"></select></label>
+      <label>New trip name<input type="text" id="m-name" placeholder="Only if creating a new trip"></label>
+      <label class="wide">Calendar file<input type="file" id="m-file" accept=".ics,text/calendar"></label>
+    </div>
+    <p class="hint">Gmail confirmations are added by asking Claude to refresh the log. To keep TripIt itself current, forward confirmation emails to plans@tripit.com.</p>
+    <div class="row"><button class="btn" type="button" data-close="form-import">Close</button></div>
+  </section>
+
+  <main id="list" aria-live="polite"><div class="empty">Loading trips…</div></main>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(function(){
+  var TYPES=[
+    {id:'flight',label:'Flight',c:'--flight'},
+    {id:'hotel',label:'Stay',c:'--hotel'},
+    {id:'restaurant',label:'Dining',c:'--food'},
+    {id:'transport',label:'Car / rail',c:'--move'},
+    {id:'activity',label:'Activity',c:'--fun'},
+    {id:'suggestion',label:'Suggestion',c:'--sug'}
+  ];
+  var TYPE_BY={};TYPES.forEach(function(t){TYPE_BY[t.id]=t;});
+  var state={trips:[],items:[],when:'upcoming',types:{},q:'',ready:false,canWrite:true};
+  var db=null;
+  var $=function(id){return document.getElementById(id);};
+  var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function parts(s){var m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(s||'');return m?{y:+m[1],m:+m[2]-1,d:+m[3]}:null;}
+  function dow(s){var p=parts(s);return p?DAYS[new Date(p.y,p.m,p.d).getDay()]:'';}
+  function shortDate(s){var p=parts(s);return p?MONTHS[p.m]+' '+p.d:'';}
+  function fullDate(s){var p=parts(s);return p?dow(s)+', '+MONTHS[p.m]+' '+p.d+', '+p.y:'';}
+  function rangeLabel(a,b){
+    var pa=parts(a),pb=parts(b);
+    if(pa&&pb){
+      if(a===b)return shortDate(a)+', '+pa.y;
+      if(pa.y===pb.y)return shortDate(a)+' to '+shortDate(b)+', '+pb.y;
+      return shortDate(a)+', '+pa.y+' to '+shortDate(b)+', '+pb.y;
+    }
+    if(pa)return 'From '+shortDate(a)+', '+pa.y;
+    return 'Dates to be added';
+  }
+  function dayDiff(a,b){var pa=parts(a),pb=parts(b);if(!pa||!pb)return 0;return Math.round((new Date(pb.y,pb.m,pb.d)-new Date(pa.y,pa.m,pa.d))/86400000);}
+  function fmtTime(t){if(!t)return '';var m=/^(\d\d):(\d\d)/.exec(t);if(!m)return t;var h=+m[1],ap=h>=12?'pm':'am';h=h%12||12;return h+':'+m[2]+' '+ap;}
+  function toast(msg){var t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){t.hidden=true;},2800);}
+  function sortKey(it){return (it.date||'9999-99-99')+' '+(it.time||'00:00');}
+
+  function tripDates(trip){
+    var its=state.items.filter(function(i){return i.tripId===trip.id;});
+    var s=trip.start,e=trip.end;
+    its.forEach(function(i){
+      if(i.date&&(!s||i.date<s))s=i.date;
+      var end=i.endDate||i.date;
+      if(end&&(!e||end>e))e=end;
+    });
+    return {start:s||'',end:e||s||''};
+  }
+  function tripStatus(trip){
+    var d=tripDates(trip),t=todayStr();
+    if(!d.end&&!d.start)return 'upcoming';
+    if(d.end&&d.end<t)return 'past';
+    if(d.start&&d.start<=t)return 'now';
+    return 'upcoming';
+  }
+
+  /* ---------- rendering ---------- */
+  function renderChips(){
+    $('chips').innerHTML=TYPES.map(function(t){
+      return '<button type="button" class="chip" data-type="'+t.id+'" aria-pressed="'+(state.types[t.id]?'true':'false')+'" style="--c:var('+t.c+')"><i></i>'+t.label+'</button>';
+    }).join('');
+  }
+  function renderNext(){
+    var el=$('next'),t=todayStr(),now=new Date();
+    var nowKey=t+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    var up=state.items.filter(function(i){return (i.type==='flight'||i.type==='hotel')&&i.date&&sortKey(i)>=nowKey;}).sort(function(a,b){return sortKey(a)<sortKey(b)?-1:1;});
+    if(!up.length){el.hidden=true;return;}
+    var n=up[0],d=dayDiff(t,n.date);
+    var trip=state.trips.find(function(x){return x.id===n.tripId;});
+    el.hidden=false;
+    el.innerHTML='<span class="eyebrow">Next up</span><b>'+esc(n.title)+'</b><span class="muted">'+esc(fullDate(n.date))+(n.time?' at '+esc(fmtTime(n.time)):'')+(trip?' · '+esc(trip.name):'')+'</span><span class="days">'+(d===0?'Today':d===1?'Tomorrow':'In '+d+' days')+'</span>';
+  }
+  function itemHtml(it){
+    var ty=TYPE_BY[it.type]||TYPE_BY.activity;
+    var tm=fmtTime(it.time);
+    if(it.endTime){tm+=(tm?' to ':'')+fmtTime(it.endTime)+(it.endDate&&it.endDate!==it.date?' ('+esc(shortDate(it.endDate))+')':'');}
+    else if(it.endDate&&it.endDate!==it.date){tm+=(tm?'<br>':'')+'to '+esc(shortDate(it.endDate));}
+    var sub=[];
+    if(it.location)sub.push('<span>'+esc(it.location)+'</span>');
+    if(it.confirmation)sub.push('<span>Conf <button type="button" class="code" data-copy="'+esc(it.confirmation)+'" title="Copy confirmation code">'+esc(it.confirmation)+'</button></span>');
+    if(it.travelers)sub.push('<span>'+esc(it.travelers)+'</span>');
+    if(it.notes)sub.push('<span>'+esc(it.notes)+'</span>');
+    var acts=state.canWrite?'<div class="item-actions"><button type="button" class="btn ghost" data-act="edit-item" data-id="'+esc(it.id)+'">Edit</button><button type="button" class="btn ghost danger" data-act="del-item" data-id="'+esc(it.id)+'">Delete</button></div>':'';
+    return '<div class="item"><div class="time">'+(tm||'')+'</div><div class="item-main"><div class="item-title"><span class="tag" style="--c:var('+ty.c+')">'+ty.label+'</span>'+esc(it.title)+'</div>'+(sub.length?'<div class="item-sub">'+sub.join('')+'</div>':'')+'</div>'+acts+'</div>';
+  }
+  function visibleItems(trip){
+    var anyType=Object.keys(state.types).some(function(k){return state.types[k];});
+    var q=state.q.trim().toLowerCase();
+    return state.items.filter(function(i){return i.tripId===trip.id;}).filter(function(i){
+      if(anyType&&!state.types[i.type])return false;
+      if(q){var hay=[i.title,i.location,i.confirmation,i.travelers,i.notes,trip.name,trip.destination].join(' ').toLowerCase();if(hay.indexOf(q)<0)return false;}
+      return true;
+    }).sort(function(a,b){return sortKey(a)<sortKey(b)?-1:sortKey(a)>sortKey(b)?1:0;});
+  }
+  function tripHtml(trip){
+    var st=tripStatus(trip),d=tripDates(trip);
+    var items=visibleItems(trip);
+    var total=state.items.filter(function(i){return i.tripId===trip.id;}).length;
+    var counts={};state.items.forEach(function(i){if(i.tripId===trip.id)counts[i.type]=(counts[i.type]||0)+1;});
+    var cs=TYPES.filter(function(t){return counts[t.id];}).map(function(t){return counts[t.id]+' '+t.label.toLowerCase()+(counts[t.id]>1&&t.id!=='transport'?'s':'');}).join(', ');
+    var days={},order=[];
+    items.forEach(function(i){var k=i.date||'';if(!days[k]){days[k]=[];order.push(k);}days[k].push(i);});
+    var body=order.map(function(k){
+      return '<div class="day"><div class="day-label"><b>'+esc(k?shortDate(k):'No date')+'</b>'+esc(k?dow(k):'')+'</div><div class="items">'+days[k].map(itemHtml).join('')+'</div></div>';
+    }).join('');
+    if(!items.length)body='<div class="noitems">'+(total?'Nothing here matches the current filters.':'No bookings yet. Add a flight, stay or reservation.')+'</div>';
+    var badge=st==='past'?'<span class="badge past">Past</span>':st==='now'?'<span class="badge">In progress</span>':'<span class="badge">Upcoming</span>';
+    var acts=state.canWrite?'<div class="trip-actions"><button type="button" class="btn ghost" data-act="add-to" data-id="'+esc(trip.id)+'">Add booking</button><button type="button" class="btn ghost" data-act="edit-trip" data-id="'+esc(trip.id)+'">Edit trip</button><button type="button" class="btn ghost danger" data-act="del-trip" data-id="'+esc(trip.id)+'">Delete trip</button></div>':'';
+    return '<article class="trip">'+'<div class="trip-head">'+badge+'<h2>'+esc(trip.name)+'</h2><div class="trip-meta"><span>'+esc(rangeLabel(d.start,d.end))+'</span>'+(trip.destination?'<span>'+esc(trip.destination)+'</span>':'')+(trip.travelers?'<span>'+esc(trip.travelers)+'</span>':'')+(cs?'<span>'+esc(cs)+'</span>':'')+'</div>'+acts+'</div>'+body+'</article>';
+  }
+  function render(){
+    renderChips();renderNext();
+    var el=$('list');
+    if(!state.ready){el.innerHTML='<div class="empty">Loading trips…</div>';return;}
+    var trips=state.trips.filter(function(t){
+      var st=tripStatus(t);
+      if(state.when==='upcoming')return st!=='past';
+      if(state.when==='past')return st==='past';
+      return true;
+    });
+    var anyFilter=state.q.trim()||Object.keys(state.types).some(function(k){return state.types[k];});
+    if(anyFilter){trips=trips.filter(function(t){return visibleItems(t).length>0;});}
+    trips.sort(function(a,b){
+      var da=tripDates(a).start||'9999',dbb=tripDates(b).start||'9999';
+      return state.when==='past'?(da<dbb?1:-1):(da<dbb?-1:da>dbb?1:0);
+    });
+    if(!trips.length){
+      if(!state.trips.length){
+        el.innerHTML='<div class="empty"><h3>No trips logged yet</h3><p>Add a trip and its bookings, or import a TripIt calendar file to start.</p></div>';
+      }else{
+        el.innerHTML='<div class="empty"><h3>No '+(anyFilter?'matching':state.when)+' trips</h3><p>'+(anyFilter?'Clear the search or type filters to see more.':'Switch the view above to see other trips.')+'</p></div>';
+      }
+      return;
+    }
+    el.innerHTML='<div style="display:flex;flex-direction:column;gap:18px">'+trips.map(tripHtml).join('')+'</div>';
+  }
+
+  /* ---------- forms ---------- */
+  function fillTripSelects(selected){
+    var opts=state.trips.slice().sort(function(a,b){return (tripDates(a).start||'')<(tripDates(b).start||'')?-1:1;}).map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join('');
+    $('i-trip').innerHTML=opts||'<option value="">Create a trip first</option>';
+    if(selected)$('i-trip').value=selected;
+    $('m-trip').innerHTML='<option value="">New trip</option>'+opts;
+  }
+  function closePanels(){['form-item','form-trip','form-import'].forEach(function(id){$(id).hidden=true;});}
+  function openPanel(id){closePanels();$(id).hidden=false;$(id).scrollIntoView({behavior:'smooth',block:'start'});}
+  function openItemForm(it,tripId){
+    fillTripSelects(it?it.tripId:tripId);
+    $('i-type').innerHTML=TYPES.map(function(t){return '<option value="'+t.id+'">'+t.label+'</option>';}).join('');
+    var f=it||{type:'flight',date:'',time:'',endDate:'',endTime:'',title:'',location:'',confirmation:'',travelers:'',notes:''};
+    $('i-id').value=it?it.id:'';
+    $('i-type').value=f.type;$('i-title').value=f.title||'';$('i-date').value=f.date||'';$('i-time').value=f.time||'';
+    $('i-edate').value=f.endDate||'';$('i-etime').value=f.endTime||'';$('i-loc').value=f.location||'';
+    $('i-conf').value=f.confirmation||'';$('i-who').value=f.travelers||'';$('i-notes').value=f.notes||'';
+    $('item-form-title').textContent=it?'Edit booking':'Add booking';
+    openPanel('form-item');
+  }
+  function openTripForm(tr){
+    var f=tr||{name:'',destination:'',travelers:'',start:'',end:''};
+    $('t-id').value=tr?tr.id:'';$('t-name').value=f.name;$('t-dest').value=f.destination||'';
+    $('t-who').value=f.travelers||'';$('t-start').value=f.start||'';$('t-end').value=f.end||'';
+    $('trip-form-title').textContent=tr?'Edit trip':'New trip';
+    openPanel('form-trip');
+  }
+  function guardWrite(){if(!db||!state.canWrite){toast('You have view-only access to this log.');return false;}return true;}
+  function fail(e){toast((e&&e.code==='quota_exceeded')?'The log is full. Delete old entries first.':'Could not save. Check your connection and try again.');}
+
+  $('f-item').addEventListener('submit',function(ev){
+    ev.preventDefault();if(!guardWrite())return;
+    var tripId=$('i-trip').value;
+    if(!tripId){toast('Create a trip first, then add bookings to it.');return;}
+    var data={tripId:tripId,type:$('i-type').value,title:$('i-title').value.trim(),date:$('i-date').value,time:$('i-time').value,endDate:$('i-edate').value,endTime:$('i-etime').value,location:$('i-loc').value.trim(),confirmation:$('i-conf').value.trim(),travelers:$('i-who').value.trim(),notes:$('i-notes').value.trim(),source:'manual'};
+    var id=$('i-id').value;
+    var existing=id&&state.items.find(function(i){return i.id===id;});
+    if(existing&&existing.source)data.source=existing.source;
+    var ref=id?db.collection('items').doc(id):db.collection('items').doc();
+    ref.set(data).then(function(){closePanels();toast('Booking saved');}).catch(fail);
+  });
+  $('f-trip').addEventListener('submit',function(ev){
+    ev.preventDefault();if(!guardWrite())return;
+    var data={name:$('t-name').value.trim(),destination:$('t-dest').value.trim(),travelers:$('t-who').value.trim(),start:$('t-start').value,end:$('t-end').value};
+    var id=$('t-id').value;
+    var ref=id?db.collection('trips').doc(id):db.collection('trips').doc();
+    ref.set(data).then(function(){closePanels();toast('Trip saved');}).catch(fail);
+  });
+
+  /* ---------- TripIt / calendar import ---------- */
+  function unfold(t){return t.replace(/\r\n[ \t]/g,'').replace(/\n[ \t]/g,'');}
+  function icsText(s){return String(s||'').replace(/\\n/gi,' ').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\').trim();}
+  function icsDt(v){
+    var m=/(\d{4})(\d\d)(\d\d)(?:T(\d\d)(\d\d))?(Z)?/.exec(v||'');if(!m)return null;
+    var date,time='';
+    if(m[6]&&m[4]){
+      var d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]));
+      date=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      time=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    }else{date=m[1]+'-'+m[2]+'-'+m[3];if(m[4])time=m[4]+':'+m[5];}
+    return {date:date,time:time,allDay:!m[4]};
+  }
+  function classify(s){
+    var t=s.toLowerCase();
+    if(/flight|✈|\b[a-z0-9]{2}\s?\d{1,4}\b.*(\bto\b|→|->|\()/.test(t)||/\b(delta|united|american|jetblue|southwest|alaska|air canada|ana|lufthansa|british airways)\b/.test(t))return 'flight';
+    if(/hotel|stay|check[- ]?in|check[- ]?out|inn\b|resort|marriott|hilton|hyatt|villa|airbnb|lodging/.test(t))return 'hotel';
+    if(/dinner|lunch|breakfast|brunch|restaurant|reservation|cafe|bar\b|grill/.test(t))return 'restaurant';
+    if(/rental|car\b|train|rail|amtrak|ferry|transfer|uber|taxi|bus\b/.test(t))return 'transport';
+    return 'activity';
+  }
+  function parseIcs(text){
+    var out=[];
+    unfold(text).split(/BEGIN:VEVENT/).slice(1).forEach(function(block){
+      block=block.split(/END:VEVENT/)[0];
+      var f={};
+      block.split(/\r?\n/).forEach(function(line){
+        var i=line.indexOf(':');if(i<1)return;
+        var key=line.slice(0,i).split(';')[0].toUpperCase();
+        if(!(key in f))f[key]=line.slice(i+1);
+      });
+      var s=icsDt(f.DTSTART),e=icsDt(f.DTEND);if(!s)return;
+      var title=icsText(f.SUMMARY)||'Untitled';
+      var allDay=s.allDay;
+      var endDate=e?e.date:'';
+      if(allDay&&e&&endDate){ // all-day DTEND is exclusive
+        var p=parts(endDate);var dd=new Date(p.y,p.m,p.d-1);
+        endDate=dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+      }
+      out.push({type:classify(title+' '+icsText(f.DESCRIPTION).slice(0,120)),title:title,date:s.date,time:allDay?'':s.time,endDate:endDate&&endDate!==s.date?endDate:'',endTime:allDay||!e?'':e.time,location:icsText(f.LOCATION),confirmation:'',travelers:'',notes:'',source:'tripit-import'});
+    });
+    return out;
+  }
+  $('m-file').addEventListener('change',function(ev){
+    var file=ev.target.files&&ev.target.files[0];if(!file)return;
+    if(!guardWrite()){ev.target.value='';return;}
+    var r=new FileReader();
+    r.onload=function(){
+      var evs=parseIcs(String(r.result||''));
+      if(!evs.length){toast('No events found in that file.');ev.target.value='';return;}
+      var tripId=$('m-trip').value,name=$('m-name').value.trim();
+      var go=function(id){
+        var have={};state.items.filter(function(i){return i.tripId===id;}).forEach(function(i){have[i.title+'|'+i.date]=1;});
+        var fresh=evs.filter(function(e){return !have[e.title+'|'+e.date];});
+        if(!fresh.length){toast('Everything in that file is already logged.');return;}
+        var chain=Promise.resolve();
+        fresh.forEach(function(e){e.tripId=id;chain=chain.then(function(){return db.collection('items').doc().set(e);});});
+        chain.then(function(){closePanels();toast(fresh.length+' bookings imported');}).catch(fail);
+      };
+      if(tripId){go(tripId);}
+      else{
+        var dates=evs.map(function(e){return e.date;}).sort();
+        var ref=db.collection('trips').doc();
+        ref.set({name:name||file.name.replace(/\.ics$/i,'')||'Imported trip',destination:'',travelers:'',start:dates[0],end:dates[dates.length-1]}).then(function(){go(ref.id);}).catch(fail);
+      }
+      ev.target.value='';
+    };
+    r.readAsText(file);
+  });
+
+  /* ---------- TripIt feed sync ---------- */
+  function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function dayNum(s){var p=s.split('-');return Math.round(Date.UTC(+p[0],+p[1]-1,+p[2])/86400000);}
+  function flightKey(t){var m=/\b([A-Z0-9]{2})\s?(\d{2,4})\b/.exec(String(t).toUpperCase());return m?m[1]+m[2]:'';}
+  function setStatus(msg){var el=$('m-status');if(el)el.textContent=msg||'';}
+  function alreadyLogged(e){
+    return state.items.some(function(i){
+      if(e.uid&&i.uid===e.uid)return true;
+      if(i.title===e.title&&i.date===e.date)return true;
+      if(e.type==='flight'&&i.type==='flight'&&i.date===e.date){var a=flightKey(e.title),b=flightKey(i.title);if(a&&a===b)return true;}
+      if(e.type==='hotel'&&i.type==='hotel'&&i.date===e.date)return true;
+      return false;
+    });
+  }
+  function tripFor(date){
+    var n=dayNum(date);
+    return state.trips.find(function(t){return t.start&&t.end&&n>=dayNum(t.start)-1&&n<=dayNum(t.end)+1;});
+  }
+  function syncFeed(url,quiet){
+    setStatus('Fetching feed…');
+    var ctl=window.AbortController?new AbortController():null;
+    var timer=setTimeout(function(){if(ctl)ctl.abort();},15000);
+    return fetch(url,ctl?{signal:ctl.signal}:{}).then(function(r){
+      clearTimeout(timer);
+      if(!r.ok)throw new Error('http '+r.status);
+      return r.text();
+    }).then(function(txt){
+      var evs=parseIcs(txt);
+      var uids=[];unfold(txt).split(/BEGIN:VEVENT/).slice(1).forEach(function(b){var m=/^UID[^:]*:(.*)$/mi.exec(b);uids.push(m?m[1].trim():'');});
+      // parseIcs skips events without DTSTART, so realign uids by re-parsing positions
+      var k=0;unfold(txt).split(/BEGIN:VEVENT/).slice(1).forEach(function(b){
+        if(!/^DTSTART/mi.test(b))return;
+        var m=/^UID[^:]*:(.*)$/mi.exec(b);if(evs[k])evs[k].uid=m?m[1].trim():'';k++;
+      });
+      var today=ymd(new Date());
+      var fresh=evs.filter(function(e){return (e.endDate||e.date)>=today&&!alreadyLogged(e);});
+      if(!fresh.length){setStatus('Synced. Nothing new.');if(!quiet)toast('TripIt feed is up to date');return 0;}
+      fresh.sort(function(a,b){return a.date<b.date?-1:1;});
+      // group new events: existing trip by date, otherwise cluster events less than 6 days apart
+      var groups=[],byTrip={};
+      fresh.forEach(function(e){
+        var t=tripFor(e.date);
+        if(t){(byTrip[t.id]=byTrip[t.id]||{tripId:t.id,evs:[]}).evs.push(e);return;}
+        var g=groups[groups.length-1];
+        if(g&&dayNum(e.date)-dayNum(g.last)<=5){g.evs.push(e);g.last=e.endDate||e.date;}
+        else groups.push({evs:[e],last:e.endDate||e.date});
+      });
+      var chain=Promise.resolve();
+      Object.keys(byTrip).forEach(function(id){
+        byTrip[id].evs.forEach(function(e){e.tripId=id;chain=chain.then(function(){return db.collection('items').doc().set(e);});});
+      });
+      groups.forEach(function(g){
+        var ref=db.collection('trips').doc();
+        var first=g.evs[0],dest=(g.evs.find(function(e){return e.type==='hotel'&&e.location;})||{}).location||'';
+        chain=chain.then(function(){return ref.set({name:'Trip from '+first.date,destination:dest.split(',').slice(-2).join(',').trim(),travelers:'',start:first.date,end:g.last});});
+        g.evs.forEach(function(e){e.tripId=ref.id;chain=chain.then(function(){return db.collection('items').doc().set(e);});});
+      });
+      return chain.then(function(){setStatus('Synced. '+fresh.length+' new bookings added.');toast(fresh.length+' bookings added from TripIt');return fresh.length;});
+    }).catch(function(err){
+      clearTimeout(timer);
+      var blocked=!err||err.name==='TypeError'||err.name==='AbortError';
+      setStatus(blocked?'Saved. The server will pull the feed on its daily refresh.':'Could not read the feed ('+(err&&err.message||'error')+'). Check the link.');
+      return null;
+    });
+  }
+  function saveFeed(url){
+    if(!db)return Promise.resolve();
+    return db.collection('settings').doc('tripit').set({feedUrl:url,savedAt:new Date().toISOString()});
+  }
+  $('m-sync').addEventListener('click',function(){
+    if(!guardWrite())return;
+    var url=$('m-feed').value.trim();
+    if(!/^https?:\/\/|^webcal:\/\//i.test(url)){setStatus('Paste the full TripIt feed link.');return;}
+    url=url.replace(/^webcal:\/\//i,'https://');
+    saveFeed(url).then(function(){return serverSync().then(function(r){return r===null?syncFeed(url,false):r;});}).catch(fail);
+  });
+
+  /* ---------- events ---------- */
+  document.addEventListener('click',function(ev){
+    var b=ev.target.closest('button');if(!b)return;
+    if(b.dataset.when){state.when=b.dataset.when;document.querySelectorAll('[data-when]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});render();return;}
+    if(b.dataset.type){state.types[b.dataset.type]=!state.types[b.dataset.type];render();return;}
+    if(b.dataset.close){$(b.dataset.close).hidden=true;return;}
+    if(b.dataset.copy){
+      var v=b.dataset.copy;
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(v):Promise.reject()).then(function(){toast('Copied '+v);},function(){var r=document.createRange();r.selectNodeContents(b);var s=getSelection();s.removeAllRanges();s.addRange(r);toast('Press copy to copy '+v);});
+      return;
+    }
+    var act=b.dataset.act,id=b.dataset.id;
+    if(act==='edit-item'){openItemForm(state.items.find(function(i){return i.id===id;}));}
+    else if(act==='add-to'){openItemForm(null,id);}
+    else if(act==='edit-trip'){openTripForm(state.trips.find(function(t){return t.id===id;}));}
+    else if(act==='del-item'||act==='del-trip'){
+      if(!guardWrite())return;
+      if(b.dataset.armed!=='1'){
+        b.dataset.armed='1';b.textContent='Confirm delete';
+        setTimeout(function(){if(b.isConnected){b.dataset.armed='';b.textContent=act==='del-item'?'Delete':'Delete trip';}},3500);
+        return;
+      }
+      if(act==='del-item'){db.collection('items').doc(id).delete().then(function(){toast('Booking deleted');}).catch(fail);}
+      else{
+        var kids=state.items.filter(function(i){return i.tripId===id;});
+        Promise.all(kids.map(function(k){return db.collection('items').doc(k.id).delete();})).then(function(){return db.collection('trips').doc(id).delete();}).then(function(){toast('Trip deleted');}).catch(fail);
+      }
+    }
+  });
+  $('btn-item').addEventListener('click',function(){if(guardWrite())openItemForm(null,null);});
+  $('btn-trip').addEventListener('click',function(){if(guardWrite())openTripForm(null);});
+  $('btn-import').addEventListener('click',function(){if(guardWrite()){fillTripSelects();openPanel('form-import');}});
+  $('q').addEventListener('input',function(e){state.q=e.target.value;render();});
+
+  /* ---------- data ---------- */
+  function rows(snap){return snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o;});}
+  render();
+  var sb=null,TOKEN='';
+  function newId(){return (window.crypto&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2)).replace(/-/g,'').slice(0,20);}
+  function makeDb(){
+    function load(col){return sb.from('docs').select('id,data').eq('collection',col).then(function(r){if(r.error)throw r.error;return r.data||[];});}
+    var subs={};
+    sb.channel('docs-live').on('postgres_changes',{event:'*',schema:'public',table:'docs'},function(p){
+      var col=(p.new&&p.new.collection)||(p.old&&p.old.collection);
+      (subs[col]||[]).forEach(function(f){f();});
+    }).subscribe();
+    function snap(rowsIn){return {docs:rowsIn.map(function(r){return {id:r.id,data:function(){return r.data;}};}),exists:rowsIn.length>0,data:function(){return rowsIn[0]&&rowsIn[0].data;}};}
+    return {collection:function(col){
+      return {
+        onSnapshot:function(ok,err){var f=function(){load(col).then(function(r){ok(snap(r));}).catch(function(e){if(err)err(e);});};(subs[col]=subs[col]||[]).push(f);f();},
+        doc:function(id){
+          id=id||newId();
+          return {id:id,
+            set:function(data){return sb.from('docs').upsert({collection:col,id:id,data:data}).then(function(r){if(r.error)throw r.error;});},
+            delete:function(){return sb.from('docs').delete().eq('collection',col).eq('id',id).then(function(r){if(r.error)throw r.error;});},
+            onSnapshot:function(ok,err){var f=function(){sb.from('docs').select('id,data').eq('collection',col).eq('id',id).then(function(r){if(r.error){if(err)err(r.error);return;}ok(snap(r.data||[]));});};(subs[col]=subs[col]||[]).push(f);f();}
+          };
+        }
+      };
+    }};
+  }
+  function serverSync(){
+    return fetch('/api/sync',{method:'POST',headers:{Authorization:'Bearer '+TOKEN}}).then(function(r){
+      if(!r.ok)return null;return r.json();
+    }).then(function(j){
+      if(!j)return null;
+      setStatus('Synced. '+(j.added?j.added+' new bookings added.':'Nothing new.'));
+      toast(j.added?j.added+' bookings added from TripIt':'TripIt feed is up to date');return j.added||0;
+    }).catch(function(){return null;});
+  }
+  function showAuth(msg){$('auth').hidden=false;if(msg)$('auth-msg').textContent=msg;}
+  function start(session){
+    $('auth').hidden=true;TOKEN=session.access_token;
+    db=makeDb();
+    sb.from('family_members').select('role').eq('email',(session.user.email||'').toLowerCase()).then(function(r){
+      var role=r.data&&r.data[0]&&r.data[0].role;
+      if(!role){db=null;$('list').innerHTML='<div class="empty"><h3>This email is not on the family list</h3><p>Ask Puneet to add '+esc(session.user.email||'your email')+'.</p></div>';return;}
+      state.canWrite=(role==='owner'||role==='editor');
+      var got={trips:false,items:false};
+      function done(k){got[k]=true;if(got.trips&&got.items){state.ready=true;}render();}
+      db.collection('trips').onSnapshot(function(s){state.trips=rows(s);done('trips');},function(){state.ready=true;render();});
+      db.collection('items').onSnapshot(function(s){state.items=rows(s);done('items');},function(){state.ready=true;render();});
+      db.collection('settings').doc('tripit').onSnapshot(function(s){
+        var d=s&&s.exists?s.data():null;
+        if(d&&d.feedUrl&&document.activeElement!==$('m-feed'))$('m-feed').value=d.feedUrl;
+        if(d&&d.lastSync)setStatus('Last synced '+new Date(d.lastSync).toLocaleString()+(d.lastResult?' · '+d.lastResult:''));
+      },function(){});
+    });
+  }
+  if(!window.supabase||!window.APP_CONFIG||!APP_CONFIG.supabaseUrl){
+    $('list').innerHTML='<div class="empty"><h3>Not configured yet</h3><p>Set the Supabase URL and key in config.js.</p></div>';return;
+  }
+  sb=window.supabase.createClient(APP_CONFIG.supabaseUrl,APP_CONFIG.supabaseAnonKey);
+  $('auth-go').addEventListener('click',function(){
+    var em=$('auth-email').value.trim().toLowerCase();if(!em)return;
+    $('auth-go').disabled=true;
+    sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin}}).then(function(r){
+      $('auth-go').disabled=false;
+      $('auth-msg').textContent=r.error?'Could not send the link. Check the email and try again.':'Check your email and open the link on this device.';
+    });
+  });
+  $('btn-out').addEventListener('click',function(){sb.auth.signOut().then(function(){location.reload();});});
+  sb.auth.getSession().then(function(r){if(r.data&&r.data.session)start(r.data.session);else showAuth();});
+  sb.auth.onAuthStateChange(function(ev,session){if(ev==='SIGNED_IN'&&session&&!db)start(session);if(ev==='TOKEN_REFRESHED'&&session)TOKEN=session.access_token;});
+})();
+</script>
