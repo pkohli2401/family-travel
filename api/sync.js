@@ -64,7 +64,8 @@ function parse(text) {
 }
 
 const dayNum = (s) => { const p = s.split('-'); return Math.round(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000); };
-const fkey = (t) => { const m = /\b([A-Z0-9]{2})\s?(\d{2,4})\b/.exec(String(t).toUpperCase()); return m ? m[1] + m[2] : ''; };
+// Match flights by flight number digits only, so "DL638", "Delta 638" and "UA 638" titles all line up on the same date.
+const fkey = (t) => { const m = /(?:^|[^0-9])(\d{2,4})(?!\d)/.exec(String(t)); return m ? m[1] : ''; };
 
 async function authorized(req) {
   const h = req.headers.authorization || '';
@@ -93,7 +94,7 @@ module.exports = async (req, res) => {
       (e.uid && i.uid === e.uid) || (i.title === e.title && i.date === e.date) ||
       (e.type === 'flight' && i.type === 'flight' && i.date === e.date && fkey(e.title) && fkey(e.title) === fkey(i.title)) ||
       (e.type === 'hotel' && i.type === 'hotel' && i.date === e.date));
-    const fresh = evs.filter((e) => (e.endDate || e.date) >= today && !logged(e)).sort((a, b) => (a.date < b.date ? -1 : 1));
+    const fresh = evs.filter((e) => !/^check-?out\b/i.test(e.title) && (e.endDate || e.date) >= today && !logged(e)).sort((a, b) => (a.date < b.date ? -1 : 1));
     const groups = []; const byTrip = {};
     fresh.forEach((e) => {
       const t = trips.find((x) => x.start && x.end && dayNum(e.date) >= dayNum(x.start) - 1 && dayNum(e.date) <= dayNum(x.end) + 1);
