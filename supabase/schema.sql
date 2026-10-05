@@ -20,6 +20,8 @@ create or replace function public.family_role() returns text
 language sql stable security definer set search_path = public as $$
   select role from public.family_members where email = lower(auth.jwt() ->> 'email')
 $$;
+revoke execute on function public.family_role() from public, anon;
+grant execute on function public.family_role() to authenticated;
 
 drop policy if exists docs_read on public.docs;
 drop policy if exists docs_insert on public.docs;
