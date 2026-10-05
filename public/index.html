@@ -1,4 +1,9 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Kohli Family Travel Log</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Family Trips">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0e6b73">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -112,6 +117,63 @@ textarea{min-height:64px;resize:vertical}
 #auth{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
 #auth[hidden]{display:none}
 #auth .box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px;display:flex;flex-direction:column;gap:12px}
+[hidden]{display:none!important}
+/* ---- v2 layout: bigger type, plan first, fewer controls ---- */
+html{font-size:112.5%;-webkit-text-size-adjust:100%}
+body{font-size:1rem;line-height:1.5;padding-inline:max(16px,env(safe-area-inset-left));padding-block:max(20px,env(safe-area-inset-top)) 120px}
+h1{font-size:2rem}
+h2{font-size:1.5rem}
+.eyebrow{font-size:.78rem}
+.btn{min-height:46px;padding:10px 16px;font-size:1rem}
+.btn.ghost{min-height:44px;padding:8px 12px;font-size:.95rem}
+.btn.big{width:100%;min-height:54px;font-size:1.1rem}
+.icon-btn{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.4rem;line-height:1}
+.head-top{align-items:center;flex-wrap:nowrap}
+.seg button{min-height:46px;padding:10px 16px;font-size:1rem}
+.toolbar{justify-content:space-between;flex-wrap:nowrap}
+.seg button{padding-inline:12px}
+#filters{display:flex;flex-direction:column;gap:12px}
+#filters[hidden]{display:none}
+.chip{padding:8px 14px;font-size:.95rem;min-height:40px}
+input[type=search],input[type=text],input[type=date],input[type=time],input[type=url],select,textarea{padding:12px;font-size:1rem}
+input[type=search]{max-width:none}
+.next{display:block;padding:18px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink)}
+.next .eyebrow{color:inherit;opacity:.85;display:block}
+.next b{display:block;font-size:1.5rem;line-height:1.2;margin:4px 0}
+.next .muted{color:inherit;opacity:.9;display:block;font-size:1rem}
+.next .days{display:inline-block;margin:10px 0 0;background:rgba(255,255,255,.2);border-radius:999px;padding:4px 12px;font-family:var(--font-body);font-weight:600;font-size:.95rem;color:inherit}
+details.trip{border-radius:12px}
+details.trip>summary{list-style:none;cursor:pointer;display:block}
+details.trip>summary::-webkit-details-marker{display:none}
+.trip-head{border-bottom:0;padding:18px 48px 16px 18px;position:relative}
+details.trip[open]>summary .trip-head{border-bottom:1px solid var(--line)}
+.trip-head::after{content:"";position:absolute;right:20px;top:26px;width:10px;height:10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+details.trip[open]>summary .trip-head::after{transform:rotate(225deg);top:32px}
+.trip-meta{font-size:.95rem}
+.day{padding:14px 18px;grid-template-columns:4.6rem minmax(0,1fr)}
+.day-label{font-size:.85rem}
+.day-label b{font-size:1.1rem}
+.item{grid-template-columns:5rem minmax(0,1fr);padding:6px 0;border-radius:8px}
+.time{font-size:.9rem}
+.tag{font-size:.74rem}
+.item-title{font-size:1.05rem;line-height:1.35}
+.item-sub{font-size:.95rem}
+.item-actions{display:none;grid-column:2;opacity:1;gap:4px;margin:6px 0 2px -8px}
+.item.sel{background:var(--bg)}
+.item.sel .item-actions{display:flex}
+.item.sug{border-left:3px dashed var(--sug);padding-left:10px;margin-left:-13px}
+.trip-manage{display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px;border-top:1px solid var(--line)}
+.fab{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));width:64px;height:64px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:2.2rem;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:20}
+.fab[hidden]{display:none}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:40}
+.sheet[hidden]{display:none}
+.sheet-box{width:100%;max-width:520px;background:var(--surface);border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+.toast{font-size:1rem;padding:12px 16px}
+@media (max-width:560px){
+  .day{grid-template-columns:1fr}
+  .item{grid-template-columns:4.4rem minmax(0,1fr)}
+  h1{font-size:1.8rem}
+}
 </style>
 
 <div id="auth" hidden><div class="box">
@@ -125,15 +187,10 @@ textarea{min-height:64px;resize:vertical}
   <header>
     <div class="head-top">
       <div>
-        <div class="eyebrow">Family travel log</div>
+        <div class="eyebrow">Family travel</div>
         <h1>Kohli family trips</h1>
       </div>
-      <div class="row">
-        <button class="btn" id="btn-import" type="button">Import</button>
-        <button class="btn ghost" id="btn-out" type="button">Sign out</button>
-        <button class="btn" id="btn-trip" type="button">New trip</button>
-        <button class="btn primary" id="btn-item" type="button">Add booking</button>
-      </div>
+      <button class="icon-btn" id="btn-settings" type="button" aria-label="Settings and account">&#9881;</button>
     </div>
     <div id="next" class="next" hidden></div>
     <div class="toolbar">
@@ -142,9 +199,12 @@ textarea{min-height:64px;resize:vertical}
         <button type="button" data-when="past" aria-pressed="false">Past</button>
         <button type="button" data-when="all" aria-pressed="false">All</button>
       </div>
-      <input type="search" id="q" placeholder="Search city, hotel, code" aria-label="Search bookings">
+      <button class="btn" id="btn-filter" type="button" aria-expanded="false">Search</button>
     </div>
-    <div class="chips" id="chips" role="group" aria-label="Filter by type"></div>
+    <div id="filters" hidden>
+      <input type="search" id="q" placeholder="Search city, hotel, code" aria-label="Search bookings">
+      <div class="chips" id="chips" role="group" aria-label="Filter by type"></div>
+    </div>
   </header>
 
   <section id="form-item" class="panel" hidden aria-label="Booking form">
@@ -189,8 +249,11 @@ textarea{min-height:64px;resize:vertical}
     </form>
   </section>
 
-  <section id="form-import" class="panel" hidden aria-label="Import from TripIt">
-    <h2>Import from TripIt</h2>
+  <section id="form-import" class="panel" hidden aria-label="Settings">
+    <h2>Settings</h2>
+    <div class="row"><span class="hint" id="acct">Signed in</span><span class="spacer"></span><button class="btn" id="btn-out" type="button">Sign out</button></div>
+    <div id="owner-only">
+    <h2 style="font-size:1.15rem;margin-top:8px">Import from TripIt</h2>
     <h3 class="sub">Calendar feed (automatic)</h3>
     <p class="hint">In TripIt, open Settings, then Calendar Feed, copy the feed link and paste it here. Bookings are grouped into trips by date and anything already logged is skipped. The link is saved with the log so the daily refresh can keep it current.</p>
     <div class="grid">
@@ -205,11 +268,18 @@ textarea{min-height:64px;resize:vertical}
       <label class="wide">Calendar file<input type="file" id="m-file" accept=".ics,text/calendar"></label>
     </div>
     <p class="hint">Gmail confirmations are added by asking Claude to refresh the log. To keep TripIt itself current, forward confirmation emails to plans@tripit.com.</p>
+    </div>
     <div class="row"><button class="btn" type="button" data-close="form-import">Close</button></div>
   </section>
 
   <main id="list" aria-live="polite"><div class="empty">Loading trips…</div></main>
 </div>
+<button id="fab" class="fab" type="button" aria-label="Add a booking or trip" hidden>+</button>
+<div id="sheet" class="sheet" hidden><div class="sheet-box">
+  <button class="btn primary big" id="btn-item" type="button">Add booking</button>
+  <button class="btn big" id="btn-trip" type="button">New trip</button>
+  <button class="btn ghost big" id="sheet-x" type="button">Cancel</button>
+</div></div>
 <div id="toast" class="toast" role="status" hidden></div>
 
 <script>
@@ -223,7 +293,7 @@ textarea{min-height:64px;resize:vertical}
     {id:'suggestion',label:'Suggestion',c:'--sug'}
   ];
   var TYPE_BY={};TYPES.forEach(function(t){TYPE_BY[t.id]=t;});
-  var state={trips:[],items:[],when:'upcoming',types:{},q:'',ready:false,canWrite:true};
+  var state={trips:[],items:[],when:'upcoming',types:{},q:'',ready:false,canWrite:true,role:'',openSet:{},defaultOpen:''};
   var db=null;
   var $=function(id){return document.getElementById(id);};
   var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -295,7 +365,7 @@ textarea{min-height:64px;resize:vertical}
     if(it.travelers)sub.push('<span>'+esc(it.travelers)+'</span>');
     if(it.notes)sub.push('<span>'+esc(it.notes)+'</span>');
     var acts=state.canWrite?'<div class="item-actions"><button type="button" class="btn ghost" data-act="edit-item" data-id="'+esc(it.id)+'">Edit</button><button type="button" class="btn ghost danger" data-act="del-item" data-id="'+esc(it.id)+'">Delete</button></div>':'';
-    return '<div class="item"><div class="time">'+(tm||'')+'</div><div class="item-main"><div class="item-title"><span class="tag" style="--c:var('+ty.c+')">'+ty.label+'</span>'+esc(it.title)+'</div>'+(sub.length?'<div class="item-sub">'+sub.join('')+'</div>':'')+'</div>'+acts+'</div>';
+    return '<div class="item'+(it.type==='suggestion'?' sug':'')+'"><div class="time">'+(tm||'')+'</div><div class="item-main"><div class="item-title"><span class="tag" style="--c:var('+ty.c+')">'+ty.label+'</span>'+esc(it.title)+'</div>'+(sub.length?'<div class="item-sub">'+sub.join('')+'</div>':'')+'</div>'+acts+'</div>';
   }
   function visibleItems(trip){
     var anyType=Object.keys(state.types).some(function(k){return state.types[k];});
@@ -319,8 +389,12 @@ textarea{min-height:64px;resize:vertical}
     }).join('');
     if(!items.length)body='<div class="noitems">'+(total?'Nothing here matches the current filters.':'No bookings yet. Add a flight, stay or reservation.')+'</div>';
     var badge=st==='past'?'<span class="badge past">Past</span>':st==='now'?'<span class="badge">In progress</span>':'<span class="badge">Upcoming</span>';
-    var acts=state.canWrite?'<div class="trip-actions"><button type="button" class="btn ghost" data-act="add-to" data-id="'+esc(trip.id)+'">Add booking</button><button type="button" class="btn ghost" data-act="edit-trip" data-id="'+esc(trip.id)+'">Edit trip</button><button type="button" class="btn ghost danger" data-act="del-trip" data-id="'+esc(trip.id)+'">Delete trip</button></div>':'';
-    return '<article class="trip">'+'<div class="trip-head">'+badge+'<h2>'+esc(trip.name)+'</h2><div class="trip-meta"><span>'+esc(rangeLabel(d.start,d.end))+'</span>'+(trip.destination?'<span>'+esc(trip.destination)+'</span>':'')+(trip.travelers?'<span>'+esc(trip.travelers)+'</span>':'')+(cs?'<span>'+esc(cs)+'</span>':'')+'</div>'+acts+'</div>'+body+'</article>';
+    var manage=state.canWrite?'<div class="trip-manage"><button type="button" class="btn ghost" data-act="add-to" data-id="'+esc(trip.id)+'">+ Add booking</button><button type="button" class="btn ghost" data-act="edit-trip" data-id="'+esc(trip.id)+'">Edit trip</button><button type="button" class="btn ghost danger" data-act="del-trip" data-id="'+esc(trip.id)+'">Delete trip</button></div>':'';
+    var dd=d.start?dayDiff(todayStr(),d.start):null;
+    var when=st==='now'?'In progress':(st==='upcoming'&&dd!==null&&dd>=0?(dd===0?'Starts today':dd===1?'Starts tomorrow':'In '+dd+' days'):'');
+    var badge2=st==='past'?'<span class="badge past">Past</span>':'<span class="badge">'+(when||'Upcoming')+'</span>';
+    var op=state.openSet[trip.id];if(op===undefined)op=(trip.id===state.defaultOpen);
+    return '<details class="trip" data-trip="'+esc(trip.id)+'"'+(op?' open':'')+'><summary><div class="trip-head">'+badge2+'<h2>'+esc(trip.name)+'</h2><div class="trip-meta"><span>'+esc(rangeLabel(d.start,d.end))+'</span>'+(trip.destination?'<span>'+esc(trip.destination)+'</span>':'')+(trip.travelers?'<span>'+esc(trip.travelers)+'</span>':'')+(cs?'<span>'+esc(cs)+'</span>':'')+'</div></div></summary>'+body+manage+'</details>';
   }
   function render(){
     renderChips();renderNext();
@@ -338,6 +412,7 @@ textarea{min-height:64px;resize:vertical}
       var da=tripDates(a).start||'9999',dbb=tripDates(b).start||'9999';
       return state.when==='past'?(da<dbb?1:-1):(da<dbb?-1:da>dbb?1:0);
     });
+    state.defaultOpen=(state.when==='past'||!trips.length)?'':trips[0].id;
     if(!trips.length){
       if(!state.trips.length){
         el.innerHTML='<div class="empty"><h3>No trips logged yet</h3><p>Add a trip and its bookings, or import a TripIt calendar file to start.</p></div>';
@@ -547,7 +622,8 @@ textarea{min-height:64px;resize:vertical}
 
   /* ---------- events ---------- */
   document.addEventListener('click',function(ev){
-    var b=ev.target.closest('button');if(!b)return;
+    var b=ev.target.closest('button');
+    if(!b){var itm=ev.target.closest('.item');if(itm&&state.canWrite&&!ev.target.closest('a'))itm.classList.toggle('sel');return;}
     if(b.dataset.when){state.when=b.dataset.when;document.querySelectorAll('[data-when]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false');});render();return;}
     if(b.dataset.type){state.types[b.dataset.type]=!state.types[b.dataset.type];render();return;}
     if(b.dataset.close){$(b.dataset.close).hidden=true;return;}
@@ -574,9 +650,15 @@ textarea{min-height:64px;resize:vertical}
       }
     }
   });
-  $('btn-item').addEventListener('click',function(){if(guardWrite())openItemForm(null,null);});
-  $('btn-trip').addEventListener('click',function(){if(guardWrite())openTripForm(null);});
-  $('btn-import').addEventListener('click',function(){if(guardWrite()){fillTripSelects();openPanel('form-import');}});
+  function sheet(on){$('sheet').hidden=!on;}
+  $('fab').addEventListener('click',function(){sheet(true);});
+  $('sheet-x').addEventListener('click',function(){sheet(false);});
+  $('sheet').addEventListener('click',function(e){if(e.target===$('sheet'))sheet(false);});
+  $('btn-item').addEventListener('click',function(){sheet(false);if(guardWrite()){var open=document.querySelector('details.trip[open]');openItemForm(null,open?open.dataset.trip:null);}});
+  $('btn-trip').addEventListener('click',function(){sheet(false);if(guardWrite())openTripForm(null);});
+  $('btn-settings').addEventListener('click',function(){if(db){fillTripSelects();openPanel('form-import');}});
+  $('btn-filter').addEventListener('click',function(){var f=$('filters');f.hidden=!f.hidden;this.setAttribute('aria-expanded',String(!f.hidden));if(!f.hidden)$('q').focus();});
+  document.addEventListener('toggle',function(e){var d=e.target;if(d&&d.matches&&d.matches('details.trip'))state.openSet[d.dataset.trip]=d.open;},true);
   $('q').addEventListener('input',function(e){state.q=e.target.value;render();});
 
   /* ---------- data ---------- */
@@ -622,7 +704,8 @@ textarea{min-height:64px;resize:vertical}
     sb.from('family_members').select('role').eq('email',(session.user.email||'').toLowerCase()).then(function(r){
       var role=r.data&&r.data[0]&&r.data[0].role;
       if(!role){db=null;$('list').innerHTML='<div class="empty"><h3>This email is not on the family list</h3><p>Ask Puneet to add '+esc(session.user.email||'your email')+'.</p></div>';return;}
-      state.canWrite=(role==='owner'||role==='editor');
+      state.canWrite=(role==='owner'||role==='editor');state.role=role;
+      $('fab').hidden=!state.canWrite;$('owner-only').hidden=(role!=='owner');$('acct').textContent=(session.user.email||'')+' · '+role;
       var got={trips:false,items:false};
       function done(k){got[k]=true;if(got.trips&&got.items){state.ready=true;}render();}
       db.collection('trips').onSnapshot(function(s){state.trips=rows(s);done('trips');},function(){state.ready=true;render();});
