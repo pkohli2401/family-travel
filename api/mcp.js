@@ -20,6 +20,11 @@ const TOOLS = [
   { name: 'list_trips', description: 'List all trips in the family travel log.', inputSchema: { type: 'object', properties: {} } },
   { name: 'list_items', description: 'List bookings and suggestions, optionally for one trip.', inputSchema: { type: 'object', properties: { tripId: { type: 'string' } } } },
   {
+    name: 'create_trip',
+    description: 'Create a new trip when no existing trip covers the dates/destination. Check list_trips first to avoid duplicates. Returns the new trip id to use with add_booking.',
+    inputSchema: { type: 'object', properties: { name: { type: 'string' }, destination: { type: 'string' }, start: { type: 'string', description: 'YYYY-MM-DD' }, end: { type: 'string', description: 'YYYY-MM-DD' }, travelers: { type: 'string' } }, required: ['name', 'start', 'end'] },
+  },
+  {
     name: 'add_suggestion',
     description: 'Add an idea (restaurant, activity, outing) to a trip. It is shown under the Suggestion category and clearly marked as not booked. Use this for recommendations from chat.',
     inputSchema: { type: 'object', properties: itemProps, required: ['tripId', 'title', 'date'] },
@@ -49,6 +54,13 @@ async function callTool(name, a) {
   if (name === 'list_items') {
     const all = await listDocs('items');
     return a.tripId ? all.filter((i) => i.tripId === a.tripId) : all;
+  }
+  if (name === 'create_trip') {
+    const d = Object.assign({ destination: '', travelers: '' }, clean(a, ['name', 'destination', 'start', 'end', 'travelers']));
+    if (!d.name || !d.start || !d.end) throw new Error('name, start and end are required.');
+    const id = newId('trip-');
+    await upsertDoc('trips', id, d);
+    return { id, added: d };
   }
   if (name === 'add_suggestion') {
     const trips = await listDocs('trips');
